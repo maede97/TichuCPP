@@ -4,6 +4,8 @@ project(TichuLib)
 
 find_package(SFML 2.5 COMPONENTS graphics network REQUIRED)
 
+add_subdirectory(tests)
+
 file(GLOB sources
 	${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}/*.h

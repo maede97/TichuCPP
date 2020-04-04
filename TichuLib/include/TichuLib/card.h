@@ -4,7 +4,8 @@
 
 namespace Tichu {
 
-	enum CARD_HEIGHTS {
+	enum class CARD_HEIGHTS {
+		MAH_JONG = 1,
 		TWO = 2,
 		THREE = 3,
 		FOUR = 4,
@@ -21,7 +22,15 @@ namespace Tichu {
 		DOG = 15,
 		PHOENIX = 16,
 		DRAGON = 17,
-		MAH_JONG = 18
+		HEIGHT_UNINITIALIZED = -1
+	};
+
+	enum class CARD_COLORS {
+		GREEN = 1,
+		BLUE = 2,
+		BLACK = 3,
+		RED = 4,
+		COLOR_UNINITIALIZED = -1
 	};
 
 	class Card {
@@ -31,12 +40,21 @@ namespace Tichu {
 		/*
 			Create card from image file name
 		*/
-		Card(std::string fileName);
+		Card(std::string fileName_);
+
+		Card(CARD_HEIGHTS height_, CARD_COLORS color_);
+		Card(CARD_COLORS color_, CARD_HEIGHTS height_);
+
+		// These operands only work with the height of the card
+		bool operator==(const Card& other);
+		bool operator!=(const Card& other);
+		bool operator>(const Card& other);
+		bool operator<(const Card& other);
 
 	private:
 		std::string imageFileName;
-		CARD_HEIGHTS height;
-
+		CARD_HEIGHTS height = CARD_HEIGHTS::HEIGHT_UNINITIALIZED;
+		CARD_COLORS color = CARD_COLORS::COLOR_UNINITIALIZED;
 	};
 
-}; // namespace Tichu
+} // namespace Tichu

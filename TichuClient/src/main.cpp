@@ -1,5 +1,5 @@
 #include <SFML/Graphics.hpp>
-#include <TichuLib/card.h>
+#include <TichuLib/Card.h>
 
 int main()
 {
