@@ -45,6 +45,7 @@ namespace Tichu {
 
 		Card(CARD_HEIGHTS height_, CARD_COLORS color_);
 		Card(CARD_COLORS color_, CARD_HEIGHTS height_);
+		Card(std::pair<int, int> shortage);
 		
 		void setPhoenixHeight(CARD_HEIGHTS height);
 
@@ -57,6 +58,8 @@ namespace Tichu {
 		CARD_HEIGHTS getHeight() const;
 
 		bool isSame(const Card& other) const;
+
+		std::pair<int, int> getCardShortage() const;
 
 	private:
 		std::string imageFileName;

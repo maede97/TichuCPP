@@ -8,7 +8,8 @@ namespace Tichu {
 	public:
 		OnTable();
 
-		void playCards(PlayedBase* played);
+		/* true if correct, false if wrong*/
+		bool playCards(PlayedBase* played);
 		PlayedBase* getTopCards();
 
 	private:

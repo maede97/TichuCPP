@@ -9,6 +9,8 @@ namespace Tichu {
 		Player();
 		Player(std::string name);
 
+		void setName(std::string name);
+
 		void setTable(OnTable* table);
 
 		void layCards(PlayedBase* cards);
@@ -18,6 +20,9 @@ namespace Tichu {
 
 		std::string getName() const;
 		int getRemainingCards() const;
+			
+		std::vector<Card> getCards() const;
+
 	private:
 		std::vector<Card> cards;
 		std::string name;

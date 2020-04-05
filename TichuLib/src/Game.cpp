@@ -35,9 +35,10 @@ void Tichu::Game::distributeDeckOfCards()
 	// shuffle deck
 	std::shuffle(allCards.begin(), allCards.end(), std::mt19937(23));
 
+	index = 0;
 	for (int i = 0; i < 14; i++) {
 		for (int pl = 0; pl < 4; pl++) {
-			players[pl]->addCard(allCards[i]);
+			players[pl]->addCard(allCards[index++]);
 		}
 	}
 }

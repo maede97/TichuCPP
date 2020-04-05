@@ -9,6 +9,10 @@ Tichu::Player::Player(std::string name)
 	this->name = name;
 }
 
+void Tichu::Player::setName(std::string name) {
+	this->name = name;
+}
+
 void Tichu::Player::setTable(OnTable* table)
 {
 	this->table = table;
@@ -16,10 +20,10 @@ void Tichu::Player::setTable(OnTable* table)
 
 void Tichu::Player::layCards(PlayedBase* cards)
 {
-	table->playCards(cards);
-
-	for (auto& c : cards->getCards()) {
-		removeCard(c);
+	if (table->playCards(cards)) {
+		for (auto& c : cards->getCards()) {
+			removeCard(c);
+		}
 	}
 }
 
@@ -50,4 +54,9 @@ std::string Tichu::Player::getName() const
 int Tichu::Player::getRemainingCards() const
 {
 	return cards.size();
+}
+
+std::vector<Tichu::Card> Tichu::Player::getCards() const
+{
+	return cards;
 }

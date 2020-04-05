@@ -17,6 +17,10 @@ Tichu::Card::Card(CARD_COLORS color_, CARD_HEIGHTS height_) : height(height_), c
 
 }
 
+Tichu::Card::Card(std::pair<int, int> shortage) : color(CARD_COLORS(shortage.first)), height(CARD_HEIGHTS(shortage.second))
+{
+}
+
 void Tichu::Card::setPhoenixHeight(CARD_HEIGHTS height)
 {
 	if (height == CARD_HEIGHTS::PHOENIX) {
@@ -99,4 +103,9 @@ Tichu::CARD_HEIGHTS Tichu::Card::getHeight() const
 bool Tichu::Card::isSame(const Card& other) const
 {
 	return height == other.height && color == other.color;
+}
+
+std::pair<int, int> Tichu::Card::getCardShortage() const
+{
+	return std::make_pair<int, int>((int)color, (int)height);
 }

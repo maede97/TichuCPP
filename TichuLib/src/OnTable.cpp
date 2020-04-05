@@ -5,18 +5,26 @@ Tichu::OnTable::OnTable()
 {
 }
 
-void Tichu::OnTable::playCards(PlayedBase* played)
+bool Tichu::OnTable::playCards(PlayedBase* played)
 {
 	if (playedCards.size() == 0) {
 		currentType = played->getType();
 	}
 
 	if (played->getType() != currentType) {
-		throwError("OnTable::playCards wrong type");
+		if (played->getType() == PlayTypes::BOMB) {
+			currentType = PlayTypes::BOMB;
+		}
+		else {
+			throwError("OnTable::playCards wrong type");
+			return false;
+		}
 	}
 	else {
 		playedCards.push_back(played);
 	}
+
+	return true;
 }
 
 Tichu::PlayedBase* Tichu::OnTable::getTopCards()

@@ -12,6 +12,7 @@ target_include_directories (
 	${PROJECT_NAME} PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/include
 	TichuLib
+	tgui
 )
 
-target_link_libraries (${PROJECT_NAME} TichuLib sfml-graphics sfml-audio)
+target_link_libraries (${PROJECT_NAME} TichuLib tgui sfml-graphics sfml-audio)
