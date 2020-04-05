@@ -30,6 +30,7 @@ namespace Tichu {
 		BLUE = 2,
 		BLACK = 3,
 		RED = 4,
+		SPECIAL = 5,
 		COLOR_UNINITIALIZED = -1
 	};
 
@@ -44,17 +45,24 @@ namespace Tichu {
 
 		Card(CARD_HEIGHTS height_, CARD_COLORS color_);
 		Card(CARD_COLORS color_, CARD_HEIGHTS height_);
+		
+		void setPhoenixHeight(CARD_HEIGHTS height);
 
 		// These operands only work with the height of the card
-		bool operator==(const Card& other);
-		bool operator!=(const Card& other);
-		bool operator>(const Card& other);
-		bool operator<(const Card& other);
+		bool operator==(const Card& other) const;
+		bool operator!=(const Card& other) const;
+		bool operator>(const Card& other) const;
+		bool operator<(const Card& other) const;
+
+		CARD_HEIGHTS getHeight() const;
+
+		bool isSame(const Card& other) const;
 
 	private:
 		std::string imageFileName;
 		CARD_HEIGHTS height = CARD_HEIGHTS::HEIGHT_UNINITIALIZED;
 		CARD_COLORS color = CARD_COLORS::COLOR_UNINITIALIZED;
+		CARD_HEIGHTS phoenixHeight = CARD_HEIGHTS::HEIGHT_UNINITIALIZED;
 	};
 
 } // namespace Tichu

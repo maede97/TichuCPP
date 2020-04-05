@@ -17,17 +17,24 @@ Tichu::Card::Card(CARD_COLORS color_, CARD_HEIGHTS height_) : height(height_), c
 
 }
 
-bool Tichu::Card::operator==(const Card& other)
+void Tichu::Card::setPhoenixHeight(CARD_HEIGHTS height)
+{
+	if (height == CARD_HEIGHTS::PHOENIX) {
+		phoenixHeight = height;
+	}
+}
+
+bool Tichu::Card::operator==(const Card& other) const
 {
 	return (height == other.height);
 }
 
-bool Tichu::Card::operator!=(const Card& other)
+bool Tichu::Card::operator!=(const Card& other) const
 {
 	return !operator==(other);
 }
 
-bool Tichu::Card::operator>(const Card& other)
+bool Tichu::Card::operator>(const Card& other) const
 {
 	// if we have no special card
 	if ((int)height > 0 && (int)height < 15) {
@@ -76,7 +83,20 @@ bool Tichu::Card::operator>(const Card& other)
 	return false;
 }
 
-bool Tichu::Card::operator<(const Card& other)
+bool Tichu::Card::operator<(const Card& other) const
 {
-	return false;
+	return other > *this;
+}
+
+Tichu::CARD_HEIGHTS Tichu::Card::getHeight() const
+{
+	if (height == CARD_HEIGHTS::PHOENIX) {
+		return phoenixHeight;
+	}
+	return height;
+}
+
+bool Tichu::Card::isSame(const Card& other) const
+{
+	return height == other.height && color == other.color;
 }
