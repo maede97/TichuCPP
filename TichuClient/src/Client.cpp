@@ -24,10 +24,11 @@ public:
 	Client() {
 	}
 
-	void connect(std::string ip, int port, std::string username) {
+	bool connect(std::string ip, int port, std::string username) {
 		sf::Socket::Status status = socket.connect(ip, port);
-		while (status != sf::Socket::Done) {
-			status = socket.connect(ip, port);
+		if (status != sf::Socket::Done) {
+			MessageBoxA(NULL, "Could not connect to server.", "Error", MB_OKCANCEL | MB_ICONEXCLAMATION);
+			return false;
 		}
 		std::cout << "Connected to server" << std::endl;
 		sf::Packet packet;
@@ -35,10 +36,11 @@ public:
 		packet << username; // store username in this packet
 		if (socket.send(packet)) {
 			std::cout << "Could not send username, exit" << std::endl;
-			return;
+			return false;
 		}
 
 		socket.setBlocking(false); // set to not be blocking!
+		return true;
 	}
 	~Client() {
 
@@ -102,7 +104,9 @@ private:
 void login(tgui::EditBox::Ptr ip, tgui::EditBox::Ptr port, tgui::EditBox::Ptr username, Client* client, Tichu::Player* player, GAMESTATE* state) {
 	try {
 		player->setName(username->getText().toAnsiString());
-		client->connect(ip->getText().toAnsiString(), std::stoi(port->getText().toAnsiString()), player->getName());
+		if (!client->connect(ip->getText().toAnsiString(), std::stoi(port->getText().toAnsiString()), player->getName())) {
+			return; // there was an error
+		}
 		client->setPlayer(player);
 
 		*state = GAMESTATE::PLAYING;
@@ -114,10 +118,11 @@ void login(tgui::EditBox::Ptr ip, tgui::EditBox::Ptr port, tgui::EditBox::Ptr us
 
 int main()
 {
+	// hide console window
 	HWND hWnd = GetConsoleWindow();
 	ShowWindow(hWnd, SW_HIDE);
 
-
+	// Save our current state
 	GAMESTATE state = GAMESTATE::LOGIN;
 
 	Client* client = new Client();
@@ -129,7 +134,7 @@ int main()
 	auto editBoxIP = tgui::EditBox::create();
 	editBoxIP->setSize({ "66.67%", "12.5%" });
 	editBoxIP->setPosition({ "16.67%", "14%" });
-	editBoxIP->setDefaultText("192.168.1.125");
+	editBoxIP->setDefaultText("IP Address of Server");
 	editBoxIP->setText("192.168.1.125");
 	editBoxIP->setCaretPosition(0);
 	gui.add(editBoxIP);
@@ -137,7 +142,7 @@ int main()
 	auto editBoxPort = tgui::EditBox::create();
 	editBoxPort->setSize({ "66.67%", "12.5%" });
 	editBoxPort->setPosition({ "16.67%", "32%" });
-	editBoxPort->setDefaultText("5000");
+	editBoxPort->setDefaultText("Port of Server");
 	editBoxPort->setText("5000");
 	editBoxPort->setCaretPosition(0);
 	gui.add(editBoxPort);
@@ -175,9 +180,9 @@ int main()
 
 		window.clear(sf::Color(100, 255, 100)); // use some kind of green
 
-			if (state == GAMESTATE::LOGIN) {
-				gui.draw();
-			}
+		if (state == GAMESTATE::LOGIN) {
+			gui.draw();
+		}
 
 		// invoke mainloop on client
 		if (state == GAMESTATE::PLAYING) {
