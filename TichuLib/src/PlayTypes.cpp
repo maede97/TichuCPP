@@ -80,7 +80,7 @@ Tichu::PlayedFollowingPairs::PlayedFollowingPairs() : PlayedBase()
 Tichu::PlayedFollowingPairs::PlayedFollowingPairs(const std::vector<PlayedPair>& cards) : PlayedBase(PlayTypes::FOLLOWING_PAIRS)
 {
 	Tichu::CARD_HEIGHTS initHeight = Tichu::CARD_HEIGHTS::HEIGHT_UNINITIALIZED;
-	for (int i = 0; i < cards.size; i++) {
+	for (int i = 0; i < cards.size(); i++) {
 		if (i == 0) {
 			initHeight = cards[i].getCards()[0].getHeight();
 
