@@ -1,6 +1,8 @@
 #include "..\include\TichuLib\Game.h"
 #include <algorithm>
 #include <random>
+#include <time.h>
+#include <iostream>
 
 Tichu::Game::Game()
 {
@@ -33,12 +35,43 @@ void Tichu::Game::distributeDeckOfCards()
 	allCards[index++] = Card(CARD_COLORS::SPECIAL, CARD_HEIGHTS::MAH_JONG);
 
 	// shuffle deck
-	std::shuffle(allCards.begin(), allCards.end(), std::mt19937(23));
+	// seed RNG with random number...
+	std::shuffle(allCards.begin(), allCards.end(), std::mt19937(time(nullptr)));
 
 	index = 0;
 	for (int i = 0; i < 14; i++) {
 		for (int pl = 0; pl < 4; pl++) {
+			// set startup player
+			if (allCards[index].getCardShortage() == std::make_pair((int)CARD_COLORS::SPECIAL, (int)CARD_HEIGHTS::MAH_JONG)) {
+				currentPlayer = *(players.begin() + pl);
+				std::cout << "Game: set curr player" << std::endl;
+			}
 			players[pl]->addCard(allCards[index++]);
 		}
 	}
+
+	onTable = new OnTable();
+}
+
+bool Tichu::Game::playCards(Player* player, PlayedBase* cards)
+{
+	if (player == currentPlayer) {
+		return onTable->playCards(cards);
+	}
+	return false;
+}
+
+void Tichu::Game::setCurrentPlayer(Player* player)
+{
+	currentPlayer = player;
+}
+
+Tichu::Player* Tichu::Game::getCurrentPlayer()
+{
+	return currentPlayer;
+}
+
+const Tichu::PlayedBase* Tichu::Game::topCards() const
+{
+	return onTable->getTopCards();
 }

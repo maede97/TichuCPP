@@ -1,5 +1,6 @@
 #include "..\include\TichuLib\OnTable.h"
 #include "..\include\TichuLib\Utils.h"
+#include <iostream>
 
 Tichu::OnTable::OnTable()
 {
@@ -23,7 +24,6 @@ bool Tichu::OnTable::playCards(PlayedBase* played)
 	else {
 		playedCards.push_back(played);
 	}
-
 	return true;
 }
 

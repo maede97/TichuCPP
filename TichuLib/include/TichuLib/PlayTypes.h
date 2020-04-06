@@ -22,6 +22,7 @@ namespace Tichu {
 		PlayedBase(PlayTypes type_);
 		PlayTypes getType() const;
 		virtual std::vector<Card> getCards() const = 0;
+		virtual std::vector<int> getCardPacketData() const = 0;
 	protected:
 		PlayTypes type = PlayTypes::PLAYTYPES_UNINITIALIZED;
 	};
@@ -30,9 +31,11 @@ namespace Tichu {
 	public:
 		PlayedSingle();
 		PlayedSingle(const Card& card);
+		PlayedSingle(std::vector<int> packetData);
 		bool operator<(const PlayedSingle& other) const;
 		bool operator>(const PlayedSingle& other) const;
 		std::vector<Card> getCards() const override;
+		std::vector<int> getCardPacketData() const;
 	private:
 		Card card;
 	};
@@ -40,9 +43,11 @@ namespace Tichu {
 	public:
 		PlayedPair();
 		PlayedPair(Card cards[2]);
+		PlayedPair(std::vector<int> packetData);
 		bool operator<(const PlayedPair& other) const;
 		bool operator>(const PlayedPair& other) const;
 		std::vector<Card> getCards() const override;
+		std::vector<int> getCardPacketData() const;
 	private:
 		Card cards[2];
 	};
@@ -50,9 +55,11 @@ namespace Tichu {
 	public:
 		PlayedFollowingPairs();
 		PlayedFollowingPairs(const std::vector<PlayedPair>& cards);
+		PlayedFollowingPairs(std::vector<int> packetData);
 		bool operator<(const PlayedFollowingPairs& other) const;
 		bool operator>(const PlayedFollowingPairs& other) const;
 		std::vector<Card> getCards() const override;
+		std::vector<int> getCardPacketData() const;
 	private:
 		std::vector<PlayedPair> cards;
 	};
@@ -60,9 +67,11 @@ namespace Tichu {
 	public:
 		PlayedTriple();
 		PlayedTriple(Card cards[3]);
+		PlayedTriple(std::vector<int> packetData);
 		bool operator<(const PlayedTriple& other) const;
 		bool operator>(const PlayedTriple& other) const;
 		std::vector<Card> getCards() const override;
+		std::vector<int> getCardPacketData() const;
 	private:
 		Card cards[3];
 	};
@@ -70,9 +79,11 @@ namespace Tichu {
 	public:
 		PlayedFullhouse();
 		PlayedFullhouse(const PlayedTriple& triple, const PlayedPair& pair);
+		PlayedFullhouse(std::vector<int> packetData);
 		bool operator<(const PlayedFullhouse& other) const;
 		bool operator>(const PlayedFullhouse& other) const;
 		std::vector<Card> getCards() const override;
+		std::vector<int> getCardPacketData() const;
 	private:
 		PlayedTriple triple;
 		PlayedPair pair;
@@ -81,21 +92,25 @@ namespace Tichu {
 	public:
 		PlayedStraight();
 		PlayedStraight(const std::vector<Card>& cards);
+		PlayedStraight(std::vector<int> packetData);
 		bool operator<(const PlayedStraight& other) const;
 		bool operator>(const PlayedStraight& other) const;
 		std::vector<Card> getCards() const override;
+		std::vector<int> getCardPacketData() const;
 	private:
 		std::vector<Card> cards;
 	};
 	class PlayedBomb : public PlayedBase {
 	public:
-		enum BombType { Straight, Four, BombType_UNITINIZALIED };
+		enum class BombType { Straight, Four, BombType_UNITINIZALIED };
 		PlayedBomb();
 		PlayedBomb(const PlayedStraight& straight);
 		PlayedBomb(Card cards[4]);
+		PlayedBomb(std::vector<int> packetData);
 		bool operator<(const PlayedBomb& other) const;
 		bool operator>(const PlayedBomb& other) const;
 		std::vector<Card> getCards() const override;
+		std::vector<int> getCardPacketData() const;
 	private:
 		BombType bType = BombType::BombType_UNITINIZALIED;
 		// use one of those

@@ -19,15 +19,84 @@ enum class GAMESTATE {
 	PLAYING
 };
 
+enum class ACTION {
+	SEND_CARDS,
+	AWAIT_SEND_CARDS_CONFIRMATION,
+	PASS,
+	PLAY_BOMB,
+	MY_TURN,
+	NOTHING
+};
+
+struct PlayerData {
+	std::string name;
+	int cards = 14;
+	tgui::Label::Ptr playerLabel;
+};
+
+class SelectableCard {
+public:
+	bool isClicked(int mouseX, int mouseY) {
+		if (selected) {
+			if (rectSelected.getGlobalBounds().contains(mouseX, mouseY)) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else {
+			if (rectNormal.getGlobalBounds().contains(mouseX, mouseY)) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+	}
+
+	void toggle() {
+		selected = !selected;
+	}
+
+	void draw(sf::RenderWindow& window) {
+		if (selected) {
+			window.draw(rectSelected);
+		}
+		else {
+			window.draw(rectNormal);
+		}
+		window.draw(cardText);
+	}
+public:
+	sf::RectangleShape rectNormal;
+	sf::RectangleShape rectSelected;
+	sf::Text cardText;
+	bool selected = false;
+	Tichu::Card card;
+};
+
+struct MiddleCard {
+	sf::RectangleShape rect;
+	sf::Text cardText;
+	Tichu::Card card;
+	void draw(sf::RenderWindow& window) {
+		window.draw(rect);
+		window.draw(cardText);
+	}
+};
+
 class Client {
 public:
 	Client() {
+		playerData.resize(4);
+		font.loadFromFile("./data/orange juice 2.0.ttf");
 	}
 
 	bool connect(std::string ip, int port, std::string username) {
 		sf::Socket::Status status = socket.connect(ip, port);
 		if (status != sf::Socket::Done) {
-			MessageBoxA(NULL, "Could not connect to server.", "Error", MB_OKCANCEL | MB_ICONEXCLAMATION);
+			MessageBoxA(NULL, "Could not connect to server.", "Error", MB_OK | MB_ICONWARNING);
 			return false;
 		}
 		std::cout << "Connected to server" << std::endl;
@@ -51,57 +120,296 @@ public:
 	}
 
 	/* should be called every frame/loop */
-	void mainloop(sf::RenderWindow& window) {
+	void mainloop(sf::RenderWindow& window, ACTION& action) {
 		sf::Packet packet;
 		socket.receive(packet);
-		if (packet.getDataSize() == 0) {
-			return;
-		}
-		// process packet
-		int i;
-		packet >> i;
-		Tichu::PACKET_TYPES pack_type = Tichu::PACKET_TYPES(i);
+		if (packet.getDataSize() != 0) {
 
-		switch (pack_type)
+			// process packet
+			int i;
+			packet >> i;
+			Tichu::PACKET_TYPES pack_type = Tichu::PACKET_TYPES(i);
+
+			switch (pack_type)
+			{
+			case Tichu::PACKET_TYPES::USERS: {
+				// read all user names
+				std::cout << "Connected Users:" << std::endl;
+				std::vector<std::string> usernames;
+				for (int i = 0; i < 4; i++) {
+					std::string user;
+					packet >> user;
+					usernames.push_back(user);
+					if (user == player->getName()) {
+						my_index = i;
+					}
+					std::cout << user << std::endl;
+				}
+				// set up usernames in struct
+				for (int i = my_index; i < my_index + 4; i++) {
+					playerData[i - my_index].name = usernames[i % 4];
+				}
+				break;
+			}
+
+			case Tichu::PACKET_TYPES::MIDDLE_CARDS: {
+				std::cout << "Recv. middle cards ";
+				middleCards.clear();
+				int size;
+				int c, h;
+				packet >> size;
+				std::cout << size << std::endl;
+				middleCards.reserve(size);
+				for (int i = 0; i < size; i++) {
+					packet >> c >> h;
+					middleCards.push_back(MiddleCard());
+					middleCards.back().card = Tichu::Card(Tichu::CARD_COLORS(c), Tichu::CARD_HEIGHTS(h));
+
+					middleCards.back().cardText = sf::Text(std::to_string(c) + "/" + std::to_string(h), font, 20);
+					middleCards.back().cardText.setColor(sf::Color::Black);
+					middleCards.back().cardText.setPosition(window.getSize().x / 3 + i * 20, window.getSize().y / 2);
+
+					middleCards.back().rect = sf::RectangleShape(sf::Vector2f(20, 30));
+					middleCards.back().rect.setPosition(window.getSize().x / 3 + i * 20, window.getSize().y / 2);
+				}
+				std::cout << size << std::endl;
+				break;
+			}
+			case Tichu::PACKET_TYPES::CARDS: {
+				int amount;
+				packet >> amount;
+				int c, h;
+
+				int cW = window.getSize().x / 17;
+				int cH = cW * 1.4;
+				for (int i = 0; i < amount; i++) {
+					packet >> c >> h;
+					player->addCard(Tichu::Card(std::pair<int, int>(c, h)));
+					selectableCards.push_back(SelectableCard());
+					selectableCards.back().card = Tichu::Card(std::pair<int, int>(c, h));
+
+					selectableCards.back().rectNormal = sf::RectangleShape(sf::Vector2f(cW, cH));
+					selectableCards.back().rectNormal.setPosition(cW + i * cW + cW / 16 * i, window.getSize().y - cH);
+
+					selectableCards.back().rectSelected = sf::RectangleShape(sf::Vector2f(cW, cH));
+					selectableCards.back().rectSelected.setPosition(cW + i * cW + cW / 16 * i, window.getSize().y - cH * 1.5);
+
+					selectableCards.back().cardText = sf::Text(std::to_string(c) + "/" + std::to_string(h), font, 20);
+					selectableCards.back().cardText.setColor(sf::Color::Black);
+					selectableCards.back().cardText.setPosition(cW + i * cW + cW / 16 * i, window.getSize().y - cH);
+				}
+
+				std::cout << "I have those cards:" << std::endl;
+				for (auto& ca : player->getCards()) {
+					std::cout << " - " << ca.getCardShortage().first << "/" << ca.getCardShortage().second << std::endl;
+				}
+
+				break;
+			}
+			case Tichu::PACKET_TYPES::PLAY_VALID: {
+				if (action == ACTION::AWAIT_SEND_CARDS_CONFIRMATION) {
+					// my cards are valid, remove them from my deck
+					for (auto& c : playedCards->getCards()) {
+						player->removeCard(c);
+						for (auto it = selectableCards.begin(); it != selectableCards.end(); it++) {
+							if (it->card.isSame(c)) {
+								selectableCards.erase(it);
+								break;
+							}
+						}
+					}
+				}
+				break;
+			}
+			case Tichu::PACKET_TYPES::YOUR_TURN: {
+				action = ACTION::MY_TURN;
+				std::cout << "IT IS MY TURN." << std::endl;
+				//MessageBoxA(NULL, "It is your turn. Please play your cards or pass.", "Information", MB_OK | MB_ICONINFORMATION);
+				break;
+			}
+			case Tichu::PACKET_TYPES::REMAINING_CARDS: {
+				for (int i = 0; i < 4; i++) {
+					packet >> playerData[(i - my_index + 4) % 4].cards;
+				}
+				std::cout << "I have " << playerData[0].cards << " cards left." << std::endl;
+				for (int i = 1; i < 4; i++) {
+					playerData[i].playerLabel->setText(playerData[i].name + ": " + std::to_string(playerData[i].cards) + " cards");
+					std::cout << "Updating label to " << playerData[i].playerLabel->getText().toAnsiString() << std::endl;
+				}
+			}
+			default:
+				break;
+			}
+		}
+
+		switch (action)
 		{
-		case Tichu::PACKET_TYPES::USERS: {
-			// read all user names
-			std::cout << "Connected Users:" << std::endl;
-			for (int i = 0; i < 4; i++) {
-				std::string user;
-				packet >> user;
-				std::cout << user << std::endl;
+		case ACTION::SEND_CARDS: {
+			// send a single card...
+			playedCards = getPlayedCards();
+			if (playedCards == nullptr) {
+				action = ACTION::NOTHING;
+				break;
 			}
+			sf::Packet pack;
+			pack << (int)Tichu::PACKET_TYPES::PLAY_CARDS;
+			if (playedCards)  delete playedCards;
+			for (auto& i : playedCards->getCardPacketData()) {
+				pack << i;
+			}
+			socket.send(pack);
+			action = ACTION::AWAIT_SEND_CARDS_CONFIRMATION;
+			std::cout << "Awaiting confirmation" << std::endl;
 			break;
 		}
-		case Tichu::PACKET_TYPES::CARDS: {
-			int amount;
-			packet >> amount;
-			int c, h;
-			for (int i = 0; i < amount; i++) {
-				packet >> c >> h;
-				player->addCard(Tichu::Card(std::pair<int, int>(c, h)));
-			}
-
-			std::cout << "I have those cards:" << std::endl;
-			for (auto& ca : player->getCards()) {
-				std::cout << " - " << ca.getCardShortage().first << "/" << ca.getCardShortage().second << std::endl;
-			}
-
-			break;
+		case ACTION::PASS: {
+			sf::Packet pack;
+			pack << (int)Tichu::PACKET_TYPES::PLAY_PASS;
+			socket.send(pack);
+			action = ACTION::NOTHING;
 		}
 		default:
 			break;
 		}
 	}
 
+	Tichu::PlayedBase* getPlayedCards() {
+		std::vector<Tichu::Card> cards;
+		for (auto& c : selectableCards) {
+			if (c.selected) {
+				cards.push_back(c.card);
+			}
+		}
+
+		// try to detect what the user want's to play...
+		if (cards.size() == 1) {
+			return new Tichu::PlayedSingle(cards[0]);
+		}
+		else if (cards.size() == 2) {
+			Tichu::Card cards2[2];
+			cards2[0] = cards[0];
+			cards2[1] = cards[1];
+			if (cards2[0] != cards2[1]) return nullptr;
+			return new Tichu::PlayedPair(cards2);
+		}
+		else if (cards.size() == 3) {
+			Tichu::Card cards3[3];
+			cards3[0] = cards[0];
+			cards3[1] = cards[1];
+			cards3[2] = cards[2];
+			if (cards3[0] != cards3[1] || cards3[0] != cards3[2]) return nullptr;
+			return new Tichu::PlayedTriple(cards3);
+		}
+		else if (cards.size() == 5) {
+			// fullhouse or straight
+			// find pair and triple
+			std::cout << "sorting..." << std::endl;
+			std::sort(cards.begin(), cards.end());
+
+			if (cards[0] == cards[1]) {
+				if (cards[0] == cards[2] && cards[3] == cards[4]) {
+					// fullhouse with triple, pair
+					Tichu::Card card2[2];
+					card2[0] = cards[3];
+					card2[1] = cards[4];
+					Tichu::Card card3[3];
+					card3[0] = cards[0];
+					card3[1] = cards[1];
+					card3[2] = cards[2];
+					return new Tichu::PlayedFullhouse(Tichu::PlayedTriple(card3), Tichu::PlayedPair(card2));
+				}
+				else if (cards[0] != cards[2] && cards[2] == cards[3] && cards[2] == cards[4]) {
+					// fullhouse with pair, triple
+					Tichu::Card card2[2];
+					card2[0] = cards[0];
+					card2[1] = cards[1];
+					Tichu::Card card3[3];
+					card3[0] = cards[2];
+					card3[1] = cards[3];
+					card3[2] = cards[4];
+					return new Tichu::PlayedFullhouse(Tichu::PlayedTriple(card3), Tichu::PlayedPair(card2));
+				}
+			}
+			else {
+				// possibly a straight
+				int height = (int)cards[0].getHeight();
+				for (int i = 1; i < 5; i++) {
+					if (height + 1 != (int)cards[i].getHeight()) {
+						return nullptr;
+					}
+					else {
+						height++;
+					}
+				}
+				// we have a straight
+				return new Tichu::PlayedStraight(cards);
+			}
+			return nullptr;
+		}
+		else {
+			// multiple pairs or straight with more
+			std::sort(cards.begin(), cards.end());
+
+			if (cards[0] == cards[1]) {
+				// should be multiple pairs
+				int pairs = cards.size() / 2;
+				int height = (int)cards[0].getHeight() - 1;
+				for (int i = 0; i < pairs; i++) {
+					if (cards[i * 2] != cards[i * 2 + 1]) {
+						return nullptr;
+					}
+					if (height + 1 != (int)cards[2 * i].getHeight()) {
+						return nullptr;
+					}
+					else {
+						height++;
+					}
+				}
+				return new Tichu::PlayedStraight(cards);
+			}
+			else {
+				// straight
+				int height = (int)cards[0].getHeight();
+				for (int i = 1; i < 5; i++) {
+					if (height + 1 != (int)cards[i].getHeight()) {
+						return nullptr;
+					}
+					else {
+						height++;
+					}
+				}
+				// we have a straight
+				return new Tichu::PlayedStraight(cards);
+			}
+		}
+		return nullptr; // not implemented yet
+	}
+
+	std::vector<SelectableCard>& getSelectableCards() {
+		return selectableCards;
+	}
+
+	std::vector<MiddleCard>& getMiddleCards() {
+		return middleCards;
+	}
+
+	std::vector<PlayerData>& getPlayerData() {
+		return playerData;
+	}
+
 private:
 	sf::TcpSocket socket;
 	std::string username;
 	Tichu::Player* player = nullptr;
+	Tichu::PlayedBase* playedCards = nullptr;
+	std::vector<PlayerData> playerData;
+	std::vector<SelectableCard> selectableCards;
+	std::vector<MiddleCard> middleCards;
+	int my_index = 0;
+	sf::Font font;
 };
 
-void login(tgui::EditBox::Ptr ip, tgui::EditBox::Ptr port, tgui::EditBox::Ptr username, Client* client, Tichu::Player* player, GAMESTATE* state) {
+void login(tgui::EditBox::Ptr ip, tgui::EditBox::Ptr port, tgui::EditBox::Ptr username, Client* client, Tichu::Player* player, GAMESTATE* state, sf::RenderWindow* window) {
 	try {
 		player->setName(username->getText().toAnsiString());
 		if (!client->connect(ip->getText().toAnsiString(), std::stoi(port->getText().toAnsiString()), player->getName())) {
@@ -110,6 +418,8 @@ void login(tgui::EditBox::Ptr ip, tgui::EditBox::Ptr port, tgui::EditBox::Ptr us
 		client->setPlayer(player);
 
 		*state = GAMESTATE::PLAYING;
+		window->setTitle("Tichu - " + username->getText().toAnsiString());
+		std::cout << "Username: " << username->getText().toAnsiString() << std::endl;
 	}
 	catch (std::invalid_argument e) {
 		std::cout << "Wrong argument given. Check port.";
@@ -119,11 +429,12 @@ void login(tgui::EditBox::Ptr ip, tgui::EditBox::Ptr port, tgui::EditBox::Ptr us
 int main()
 {
 	// hide console window
-	HWND hWnd = GetConsoleWindow();
-	ShowWindow(hWnd, SW_HIDE);
+	//HWND hWnd = GetConsoleWindow();
+	//ShowWindow(hWnd, SW_HIDE);
 
 	// Save our current state
 	GAMESTATE state = GAMESTATE::LOGIN;
+	ACTION currentAction = ACTION::NOTHING;
 
 	Client* client = new Client();
 	Tichu::Player* player = new Tichu::Player();
@@ -158,7 +469,43 @@ int main()
 	button->setPosition({ "25%", "70%" });
 	gui.add(button);
 
-	button->connect("pressed", login, editBoxIP, editBoxPort, editBoxUsername, client, player, &state);
+	button->connect("pressed", login, editBoxIP, editBoxPort, editBoxUsername, client, player, &state, &window);
+
+	tgui::Gui gameGui(window);
+	auto& pData = client->getPlayerData();
+	pData[1].playerLabel = tgui::Label::create("Player 2");
+	pData[1].playerLabel->setSize({ "10%","10%" });
+	pData[1].playerLabel->setPosition({ "90%", "50%" });
+	pData[2].playerLabel = tgui::Label::create("Player 3");
+	pData[2].playerLabel->setSize({ "10%","10%" });
+	pData[2].playerLabel->setPosition({ "50%", "10%" });
+	pData[3].playerLabel = tgui::Label::create("Player 4");
+	pData[3].playerLabel->setSize({ "10%","10%" });
+	pData[3].playerLabel->setPosition({ "10%", "50%" });
+	gameGui.add(pData[1].playerLabel);
+	gameGui.add(pData[2].playerLabel);
+	gameGui.add(pData[3].playerLabel);
+
+	auto& bPlay = tgui::Button::create("Play cards");
+	bPlay->setSize({ "10%","10%" });
+	bPlay->setPosition({ "50%", "75%" });
+	gameGui.add(bPlay);
+
+	bPlay->connect("pressed", [&]() {currentAction = ACTION::SEND_CARDS; });
+
+	auto& bPass = tgui::Button::create("Pass");
+	bPass->setSize({ "10%","10%" });
+	bPass->setPosition({ "25%", "75%" });
+	gameGui.add(bPass);
+
+	bPass->connect("pressed", [&]() {currentAction = ACTION::PASS; });
+
+	auto& bBomb = tgui::Button::create("Bomb!");
+	bBomb->setSize({ "10%","10%" });
+	bBomb->setPosition({ "75%", "75%" });
+	gameGui.add(bBomb);
+
+	bBomb->connect("pressed", [&]() {currentAction = ACTION::PLAY_BOMB; });
 
 	while (window.isOpen())
 	{
@@ -170,12 +517,29 @@ int main()
 			}
 			else if (event.type == sf::Event::Resized) {
 				window.setView(sf::View(sf::FloatRect(0.f, 0.f, static_cast<float>(event.size.width), static_cast<float>(event.size.height))));
-				if (state == GAMESTATE::LOGIN)
+				if (state == GAMESTATE::LOGIN) {
 					gui.setView(window.getView());
+				}
+				else {
+					gameGui.setView(window.getView());
+				}
+			}
+			else if (event.type == sf::Event::MouseButtonPressed) {
+				if (event.mouseButton.button == sf::Mouse::Left) {
+					for (auto& s : client->getSelectableCards()) {
+						if (s.isClicked(event.mouseButton.x, event.mouseButton.y)) {
+							s.toggle();
+						}
+					}
+
+				}
 			}
 
 			if (state == GAMESTATE::LOGIN)
 				gui.handleEvent(event);
+			else {
+				gameGui.handleEvent(event);
+			}
 		}
 
 		window.clear(sf::Color(100, 255, 100)); // use some kind of green
@@ -183,10 +547,18 @@ int main()
 		if (state == GAMESTATE::LOGIN) {
 			gui.draw();
 		}
+		else {
+			gameGui.draw();
+			client->mainloop(window, currentAction);
 
-		// invoke mainloop on client
-		if (state == GAMESTATE::PLAYING) {
-			client->mainloop(window);
+			// draw card counters
+			for (auto& s : client->getSelectableCards()) {
+				s.draw(window);
+			}
+			for (auto& m : client->getMiddleCards()) {
+				m.draw(window);
+			}
+
 		}
 
 		window.display();
