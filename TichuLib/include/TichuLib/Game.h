@@ -19,6 +19,10 @@ namespace Tichu {
 
 		const PlayedBase* topCards() const;
 
+		bool isFinished();
+
+		void clearTable();
+
 	private:
 		std::vector<Player*> players;
 		OnTable* onTable = nullptr;

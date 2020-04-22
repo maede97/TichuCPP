@@ -75,3 +75,18 @@ const Tichu::PlayedBase* Tichu::Game::topCards() const
 {
 	return onTable->getTopCards();
 }
+
+bool Tichu::Game::isFinished()
+{
+	for (auto& p : players) {
+		if (p->getRemainingCards() != 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
+void Tichu::Game::clearTable()
+{
+	onTable->clearTable();
+}

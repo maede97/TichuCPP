@@ -251,6 +251,7 @@ public:
 				action = ACTION::NOTHING;
 				break;
 			}
+			std::cout << "Sending cards with type " << (int)playedCards->getType() << std::endl;
 			sf::Packet pack;
 			pack << (int)Tichu::PACKET_TYPES::PLAY_CARDS;
 			if (playedCards)  delete playedCards;
@@ -279,6 +280,9 @@ public:
 			if (c.selected) {
 				cards.push_back(c.card);
 			}
+		}
+		if (cards.size() == 0) {
+			return nullptr;
 		}
 
 		// try to detect what the user want's to play...
@@ -354,6 +358,7 @@ public:
 				// should be multiple pairs
 				int pairs = cards.size() / 2;
 				int height = (int)cards[0].getHeight() - 1;
+				std::vector<Tichu::PlayedPair> pairs_holder;
 				for (int i = 0; i < pairs; i++) {
 					if (cards[i * 2] != cards[i * 2 + 1]) {
 						return nullptr;
@@ -364,8 +369,12 @@ public:
 					else {
 						height++;
 					}
+					Tichu::Card cp[2];
+					cp[0] = cards[2 * i];
+					cp[1] = cards[2 * i + 1];
+					pairs_holder.push_back(Tichu::PlayedPair(cp));
 				}
-				return new Tichu::PlayedStraight(cards);
+				return new Tichu::PlayedFollowingPairs(pairs_holder);
 			}
 			else {
 				// straight
@@ -446,7 +455,7 @@ int main()
 	editBoxIP->setSize({ "66.67%", "12.5%" });
 	editBoxIP->setPosition({ "16.67%", "14%" });
 	editBoxIP->setDefaultText("IP Address of Server");
-	editBoxIP->setText("192.168.1.125");
+	editBoxIP->setText("127.0.0.1");
 	editBoxIP->setCaretPosition(0);
 	gui.add(editBoxIP);
 

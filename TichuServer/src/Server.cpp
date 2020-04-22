@@ -54,10 +54,14 @@ public:
 		for (int i = 0; i < 4; i++) {
 			if (players[i].second == game->getCurrentPlayer()) {
 				game->setCurrentPlayer(players[(i + 1) % 4].second);
+				int offset = 0;
+				while (game->getCurrentPlayer()->getRemainingCards() == 0) {
+					game->setCurrentPlayer(players[(i + 1 + offset++) % 4].second);
+				}
 				sf::Packet pack;
 				pack << (int)Tichu::PACKET_TYPES::YOUR_TURN;
-				sendTo(pack, (i + 1) % 4);
-				std::cout << "Next Player: " << players[(i + 1) % 4].second->getName() << std::endl;
+				sendTo(pack, (i + 1 + offset) % 4);
+				std::cout << "Next Player: " << players[(i + 1 + offset) % 4].second->getName() << std::endl;
 				return;
 			}
 		}
@@ -113,7 +117,7 @@ public:
 					default:
 						break;
 					}
-
+					std::cout << "Recvd cards with type " << (int)cardsPlayed->getType() << std::endl;
 					if (game->playCards(players[i].second, cardsPlayed)) {
 						std::cout << players[i].second->getName() << " played cards" << std::endl;
 
@@ -126,6 +130,7 @@ public:
 						packConf << (int)Tichu::PACKET_TYPES::PLAY_VALID;
 						players[i].first->send(packConf);
 
+						lastPlayed = players[i].second;
 						setNextPlayer();
 
 						// send to all the current middle cards
@@ -151,6 +156,15 @@ public:
 				}
 				case Tichu::PACKET_TYPES::PLAY_PASS: {
 					setNextPlayer();
+					if (lastPlayed == game->getCurrentPlayer()) {
+						// we did a passing round.
+						std::cout << "Passing round, clear table now..." << std::endl;
+						game->clearTable();
+						sf::Packet pack;
+						pack << (int)Tichu::PACKET_TYPES::MIDDLE_CARDS;
+						pack << 0;
+						sendAll(pack);
+					}
 					break;
 				}
 				default:
@@ -221,18 +235,26 @@ private:
 	sf::TcpListener listener;
 	std::vector<std::pair<sf::TcpSocket*, Tichu::Player*>> players;
 	Tichu::Game* game = nullptr;
+	Tichu::Player* lastPlayed = nullptr;
 };
 
 int main(int argc, const char* argv[]) {
-	Server server(PORT);
-
-	Tichu::Game game;
-
-	server.setGame(&game);
-	server.startGame();
-
 	while (true) {
-		server.mainloop();
+		Server server(PORT);
+
+		Tichu::Game game;
+
+		server.setGame(&game);
+		server.startGame();
+
+		while (true) {
+			server.mainloop();
+
+			if (game.isFinished()) {
+				std::cout << "RESTARTING SERVER" << std::endl << std::endl;
+				break;
+			}
+		}
 	}
 
 	return 0;

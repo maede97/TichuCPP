@@ -12,6 +12,8 @@ namespace Tichu {
 		bool playCards(PlayedBase* played);
 		PlayedBase* getTopCards();
 
+		void clearTable();
+
 	private:
 		std::vector<PlayedBase*> playedCards;
 		PlayTypes currentType = PlayTypes::PLAYTYPES_UNINITIALIZED;

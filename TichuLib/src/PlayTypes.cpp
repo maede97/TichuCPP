@@ -89,7 +89,7 @@ Tichu::PlayedPair::PlayedPair(std::vector<int> packetData) : PlayedBase(PlayType
 
 bool Tichu::PlayedPair::operator<(const PlayedPair& other) const
 {
-	return false;
+	return cards[0] < other.cards[0];
 }
 
 bool Tichu::PlayedPair::operator>(const PlayedPair& other) const
