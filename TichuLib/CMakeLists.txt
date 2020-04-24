@@ -21,4 +21,4 @@ target_include_directories (
 target_link_libraries(
 	${PROJECT_NAME}
 		sfml-system sfml-window sfml-graphics sfml-network sfml-audio
-	)
+)

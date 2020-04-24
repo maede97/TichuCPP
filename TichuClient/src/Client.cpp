@@ -8,10 +8,13 @@
 
 #include <TichuLib/Utils.h>
 #include <TichuLib/Player.h>
+#include <TichuLib/Game.h>
 
 // hide client window
 #define _WIN32_WINNT 0x0500
 #include <windows.h>
+
+#define DATA_FOLDER "C:/Users/Matthias/Documents/Github/TichuCPP/data"
 
 
 enum class GAMESTATE {
@@ -57,6 +60,12 @@ public:
 
 	void toggle() {
 		selected = !selected;
+		if (selected) {
+			image.setPosition(rectSelected.getPosition());
+		}
+		else {
+			image.setPosition(rectNormal.getPosition());
+		}
 	}
 
 	void draw(sf::RenderWindow& window) {
@@ -66,31 +75,39 @@ public:
 		else {
 			window.draw(rectNormal);
 		}
-		window.draw(cardText);
+		window.draw(image);
 	}
 public:
 	sf::RectangleShape rectNormal;
 	sf::RectangleShape rectSelected;
-	sf::Text cardText;
 	bool selected = false;
 	Tichu::Card card;
+	sf::Sprite image;
 };
 
 struct MiddleCard {
 	sf::RectangleShape rect;
-	sf::Text cardText;
 	Tichu::Card card;
 	void draw(sf::RenderWindow& window) {
 		window.draw(rect);
-		window.draw(cardText);
+		window.draw(image);
 	}
+
+	sf::Sprite image;
 };
 
 class Client {
 public:
 	Client() {
 		playerData.resize(4);
-		font.loadFromFile("./data/orange juice 2.0.ttf");
+		font.loadFromFile(DATA_FOLDER"/orange juice 2.0.ttf");
+
+		// load all images
+		for (auto& c : allCards) {
+			cardImages.push_back(new sf::Texture());
+			cardImages.back()->loadFromFile(DATA_FOLDER"/images/"+c.getFileName());
+		}
+
 	}
 
 	bool connect(std::string ip, int port, std::string username) {
@@ -165,12 +182,11 @@ public:
 					middleCards.push_back(MiddleCard());
 					middleCards.back().card = Tichu::Card(Tichu::CARD_COLORS(c), Tichu::CARD_HEIGHTS(h));
 
-					middleCards.back().cardText = sf::Text(std::to_string(c) + "/" + std::to_string(h), font, 20);
-					middleCards.back().cardText.setColor(sf::Color::Black);
-					middleCards.back().cardText.setPosition(window.getSize().x / 3 + i * 20, window.getSize().y / 2);
-
 					middleCards.back().rect = sf::RectangleShape(sf::Vector2f(20, 30));
 					middleCards.back().rect.setPosition(window.getSize().x / 3 + i * 20, window.getSize().y / 2);
+
+					middleCards.back().image.setTexture(*cardImages[middleCards.back().card.indexInOrderedDeck()], true);
+					middleCards.back().image.setPosition(window.getSize().x / 3 + i * 20, window.getSize().y / 2);
 				}
 				std::cout << size << std::endl;
 				break;
@@ -194,9 +210,8 @@ public:
 					selectableCards.back().rectSelected = sf::RectangleShape(sf::Vector2f(cW, cH));
 					selectableCards.back().rectSelected.setPosition(cW + i * cW + cW / 16 * i, window.getSize().y - cH * 1.5);
 
-					selectableCards.back().cardText = sf::Text(std::to_string(c) + "/" + std::to_string(h), font, 20);
-					selectableCards.back().cardText.setColor(sf::Color::Black);
-					selectableCards.back().cardText.setPosition(cW + i * cW + cW / 16 * i, window.getSize().y - cH);
+					selectableCards.back().image.setTexture(*cardImages[selectableCards.back().card.indexInOrderedDeck()], true);
+					selectableCards.back().image.setPosition(cW + i * cW + cW / 16 * i, window.getSize().y - cH);
 				}
 
 				std::cout << "I have those cards:" << std::endl;
@@ -414,6 +429,11 @@ private:
 	std::vector<PlayerData> playerData;
 	std::vector<SelectableCard> selectableCards;
 	std::vector<MiddleCard> middleCards;
+
+
+	std::vector<Tichu::Card> allCards = Tichu::Game::getDeckOfCards();
+	std::vector<sf::Texture*> cardImages;
+
 	int my_index = 0;
 	sf::Font font;
 };

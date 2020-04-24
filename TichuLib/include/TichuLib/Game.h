@@ -23,6 +23,8 @@ namespace Tichu {
 
 		void clearTable();
 
+		static std::vector<Card> getDeckOfCards();
+
 	private:
 		std::vector<Player*> players;
 		OnTable* onTable = nullptr;

@@ -41,8 +41,6 @@ namespace Tichu {
 		/*
 			Create card from image file name
 		*/
-		Card(std::string fileName_);
-
 		Card(CARD_HEIGHTS height_, CARD_COLORS color_);
 		Card(CARD_COLORS color_, CARD_HEIGHTS height_);
 		Card(std::pair<int, int> shortage);
@@ -61,8 +59,10 @@ namespace Tichu {
 
 		std::pair<int, int> getCardShortage() const;
 
+		std::string getFileName() const;
+		int indexInOrderedDeck() const;
+
 	private:
-		std::string imageFileName;
 		CARD_HEIGHTS height = CARD_HEIGHTS::HEIGHT_UNINITIALIZED;
 		CARD_COLORS color = CARD_COLORS::COLOR_UNINITIALIZED;
 		CARD_HEIGHTS phoenixHeight = CARD_HEIGHTS::HEIGHT_UNINITIALIZED;
