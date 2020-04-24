@@ -284,7 +284,7 @@ Tichu::PlayedFullhouse::PlayedFullhouse(std::vector<int> packetData) : PlayedBas
 	if (packetData[0] != (int)PlayTypes::FULLHOUSE) {
 		return;
 	}
-	if (packetData.size() != 7) {
+	if (packetData.size() != 11) {
 		return;
 	}
 	Card cards[3];
@@ -418,7 +418,7 @@ Tichu::PlayedBomb::PlayedBomb(const PlayedStraight& straight) : PlayedBase(PlayT
 	this->straight = straight;
 }
 
-Tichu::PlayedBomb::PlayedBomb(Card cards[4])
+Tichu::PlayedBomb::PlayedBomb(Card cards[4]) : PlayedBase(PlayTypes::BOMB)
 {
 	bType = BombType::Four;
 	if (cards[0].getHeight() == cards[1].getHeight() && cards[0].getHeight() == cards[2].getHeight() && cards[0].getHeight() == cards[3].getHeight()) {

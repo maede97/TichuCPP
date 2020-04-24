@@ -16,6 +16,7 @@ namespace Tichu {
 		PLAY_VALID = 5,
 		YOUR_TURN = 6,
 		PLAY_PASS = 7,
+		WRONG_TURN = 8,
 		FAIL = -1
 	};
 }

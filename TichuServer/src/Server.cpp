@@ -83,10 +83,13 @@ public:
 				case Tichu::PACKET_TYPES::PLAY_CARDS: {
 					std::vector<int> data;
 					int curr;
+					std::cout << "Recv data: ";
 					while (!packet.endOfPacket()) {
 						packet >> curr;
+						std::cout << curr << " ";
 						data.push_back(curr);
 					}
+					std::cout << std::endl;
 					Tichu::PlayTypes plType = Tichu::PlayTypes(data[0]);
 					Tichu::PlayedBase* cardsPlayed;
 					switch (plType)
@@ -139,8 +142,10 @@ public:
 						std::cout << "Top Cards: " << game->topCards()->getCards().size() << std::endl;
 						pack << (int)game->topCards()->getCards().size();
 						for (auto& c : game->topCards()->getCards()) {
+							std::cout << c.getCardShortage().first << " " << c.getCardShortage().second << "; ";
 							pack << c.getCardShortage().first << c.getCardShortage().second;
 						}
+						std::cout << std::endl;
 						sendAll(pack);
 
 						// send pack with amount of cards left
@@ -151,6 +156,12 @@ public:
 							std::cout << "Remaining Cards " << players[i].second->getName() << ": " << players[i].second->getRemainingCards() << std::endl;
 						}
 						sendAll(p2);
+					}
+					else {
+						// wrong cards sent, send back "error"
+						sf::Packet p;
+						p << (int)Tichu::PACKET_TYPES::WRONG_TURN;
+						sendTo(p, i);
 					}
 					break;
 				}
@@ -192,15 +203,16 @@ public:
 
 	void startGame() {
 		this->game->distributeDeckOfCards();
-
 		// send cards to each
 		for (int i = 0; i < 4; i++) {
+
 			sf::Packet packet;
 			packet << (int)Tichu::PACKET_TYPES::CARDS;
 
 			packet << 14; // 14 cards are following
 
 			std::vector<Tichu::Card> cards = players[i].second->getCards();
+			std::sort(cards.begin(), cards.end()); // sort the cards for the player, does not work right now?
 			for (int j = 0; j < cards.size(); j++) {
 				packet << cards[j].getCardShortage().first << cards[j].getCardShortage().second;
 			}

@@ -168,7 +168,6 @@ public:
 				}
 				break;
 			}
-
 			case Tichu::PACKET_TYPES::MIDDLE_CARDS: {
 				std::cout << "Recv. middle cards ";
 				middleCards.clear();
@@ -179,6 +178,8 @@ public:
 				middleCards.reserve(size);
 				for (int i = 0; i < size; i++) {
 					packet >> c >> h;
+					std::cout << c << " " << h << "; ";
+
 					middleCards.push_back(MiddleCard());
 					middleCards.back().card = Tichu::Card(Tichu::CARD_COLORS(c), Tichu::CARD_HEIGHTS(h));
 
@@ -188,7 +189,7 @@ public:
 					middleCards.back().image.setTexture(*cardImages[middleCards.back().card.indexInOrderedDeck()], true);
 					middleCards.back().image.setPosition(window.getSize().x / 3 + i * 20, window.getSize().y / 2);
 				}
-				std::cout << size << std::endl;
+				std::cout << std::endl <<  size << std::endl;
 				break;
 			}
 			case Tichu::PACKET_TYPES::CARDS: {
@@ -233,6 +234,7 @@ public:
 							}
 						}
 					}
+					delete playedCards;
 				}
 				break;
 			}
@@ -249,8 +251,15 @@ public:
 				std::cout << "I have " << playerData[0].cards << " cards left." << std::endl;
 				for (int i = 1; i < 4; i++) {
 					playerData[i].playerLabel->setText(playerData[i].name + ": " + std::to_string(playerData[i].cards) + " cards");
-					std::cout << "Updating label to " << playerData[i].playerLabel->getText().toAnsiString() << std::endl;
 				}
+				break;
+			}
+			case Tichu::PACKET_TYPES::WRONG_TURN: {
+				// my card does not fit.
+				// set my buttons to be enabled.
+				std::cout << "My cards don't fit. Please choose different cards." << std::endl;
+				action = ACTION::MY_TURN;
+				break;
 			}
 			default:
 				break;
@@ -263,13 +272,13 @@ public:
 			// send a single card...
 			playedCards = getPlayedCards();
 			if (playedCards == nullptr) {
-				action = ACTION::NOTHING;
+				action = ACTION::MY_TURN;
 				break;
 			}
 			std::cout << "Sending cards with type " << (int)playedCards->getType() << std::endl;
 			sf::Packet pack;
 			pack << (int)Tichu::PACKET_TYPES::PLAY_CARDS;
-			if (playedCards)  delete playedCards;
+			
 			for (auto& i : playedCards->getCardPacketData()) {
 				pack << i;
 			}
@@ -284,11 +293,60 @@ public:
 			socket.send(pack);
 			action = ACTION::NOTHING;
 		}
+		case ACTION::PLAY_BOMB: {
+			playedCards = getPlayedBomb();
+			if (playedCards == nullptr) {
+				action = ACTION::MY_TURN;
+				break;
+			}
+			std::cout << "Sending bomb." << std::endl;
+			sf::Packet pack;
+			pack << (int)Tichu::PACKET_TYPES::PLAY_CARDS;
+			for (auto& i : playedCards->getCardPacketData()) {
+				pack << i;
+			}
+			socket.send(pack);
+			action = ACTION::AWAIT_SEND_CARDS_CONFIRMATION;
+			std::cout << "Awaiting confirmation" << std::endl;
+			break;
+		}
 		default:
 			break;
 		}
 	}
-
+	Tichu::PlayedBase* getPlayedBomb() {
+		std::vector<Tichu::Card> cards;
+		for (auto& c : selectableCards) {
+			if (c.selected) {
+				cards.push_back(c.card);
+			}
+		}
+		if (cards.size() < 4) {
+			return nullptr;
+		}
+		if (cards.size() == 4) {
+			if (cards[0] == cards[1] && cards[1] == cards[2] && cards[2] == cards[3]) {
+				return new Tichu::PlayedBomb(cards.data());
+			}
+			else {
+				return nullptr;
+			}
+		}
+		else {
+			std::sort(cards.begin(), cards.end());
+			int height = (int)cards[0].getHeight();
+			for (int i = 1; i < 5; i++) {
+				if (height + 1 != (int)cards[i].getHeight()) {
+					return nullptr;
+				}
+				else {
+					height++;
+				}
+			}
+			return new Tichu::PlayedBomb(Tichu::PlayedStraight(cards));
+		}
+		return nullptr;
+	}
 	Tichu::PlayedBase* getPlayedCards() {
 		std::vector<Tichu::Card> cards;
 		for (auto& c : selectableCards) {
@@ -322,7 +380,6 @@ public:
 		else if (cards.size() == 5) {
 			// fullhouse or straight
 			// find pair and triple
-			std::cout << "sorting..." << std::endl;
 			std::sort(cards.begin(), cards.end());
 
 			if (cards[0] == cards[1]) {
@@ -518,21 +575,21 @@ int main()
 	auto& bPlay = tgui::Button::create("Play cards");
 	bPlay->setSize({ "10%","10%" });
 	bPlay->setPosition({ "50%", "75%" });
-	gameGui.add(bPlay);
+	gameGui.add(bPlay, "playBtn");
 
 	bPlay->connect("pressed", [&]() {currentAction = ACTION::SEND_CARDS; });
 
 	auto& bPass = tgui::Button::create("Pass");
 	bPass->setSize({ "10%","10%" });
 	bPass->setPosition({ "25%", "75%" });
-	gameGui.add(bPass);
+	gameGui.add(bPass, "passBtn");
 
 	bPass->connect("pressed", [&]() {currentAction = ACTION::PASS; });
 
 	auto& bBomb = tgui::Button::create("Bomb!");
 	bBomb->setSize({ "10%","10%" });
 	bBomb->setPosition({ "75%", "75%" });
-	gameGui.add(bBomb);
+	gameGui.add(bBomb, "bombBtn");
 
 	bBomb->connect("pressed", [&]() {currentAction = ACTION::PLAY_BOMB; });
 
@@ -577,10 +634,24 @@ int main()
 			gui.draw();
 		}
 		else {
+			/*
+				Disable buttons if it is not my turn
+			*/
+			if (currentAction == ACTION::MY_TURN) {
+				// enable
+				gameGui.get("passBtn")->setEnabled(true);
+				gameGui.get("playBtn")->setEnabled(true);
+				gameGui.get("bombBtn")->setEnabled(true);
+			}
+			else {
+				// disable
+				gameGui.get("passBtn")->setEnabled(false);
+				gameGui.get("playBtn")->setEnabled(false);
+				gameGui.get("bombBtn")->setEnabled(false);
+			}
 			gameGui.draw();
 			client->mainloop(window, currentAction);
 
-			// draw card counters
 			for (auto& s : client->getSelectableCards()) {
 				s.draw(window);
 			}
